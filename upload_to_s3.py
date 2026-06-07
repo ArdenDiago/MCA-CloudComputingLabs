@@ -49,3 +49,44 @@ def list_buckets():
     except Exception as e:
         logging.error(e)
         return [], str(e)
+
+
+def upload_file(file_bytes, bucket_name, object_name, acl="private", content_type="application/octet-stream"):
+    try:
+        s3 = get_client()
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=object_name,
+            Body=file_bytes,
+            ACL=acl,
+            ContentType=content_type,
+        )
+        location = s3.get_bucket_location(Bucket=bucket_name)["LocationConstraint"] or "us-east-1"
+        if acl == "public-read":
+            url = f"https://{bucket_name}.s3.{location}.amazonaws.com/{object_name}"
+        else:
+            url = f"s3://{bucket_name}/{object_name}"
+        return True, url, None
+    except Exception as e:
+        logging.error(e)
+        return False, None, str(e)
+
+
+def list_objects(bucket_name):
+    try:
+        s3 = get_client()
+        response = s3.list_objects_v2(Bucket=bucket_name)
+        return [obj["Key"] for obj in response.get("Contents", [])], None
+    except Exception as e:
+        logging.error(e)
+        return [], str(e)
+
+
+def delete_object(bucket_name, object_key):
+    try:
+        s3 = get_client()
+        s3.delete_object(Bucket=bucket_name, Key=object_key)
+        return True, None
+    except Exception as e:
+        logging.error(e)
+        return False, str(e)
