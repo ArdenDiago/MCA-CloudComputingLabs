@@ -66,3 +66,88 @@ with col_status:
 st.divider()
 
 tab1, tab2, tab3, tab4 = st.tabs(["Create Bucket", "Bucket Files", "Change Access Level", "Delete Bucket"])
+
+# ── Tab 1: Create Bucket ──────────────────────────────────────────────────────
+with tab1:
+    st.header("Create S3 Bucket")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        bucket_name = st.text_input(
+            "New Bucket Name",
+            placeholder="my-unique-bucket-name",
+            help="Must be globally unique, lowercase, 3-63 characters",
+        )
+    with col2:
+        region = st.selectbox(
+            "Region",
+            list(REGION_LABELS.keys()),
+            format_func=lambda r: REGION_LABELS[r],
+        )
+
+    allow_public = st.toggle(
+        "Allow Public Objects",
+        value=False,
+        help="Disables S3 Block Public Access so objects can be set to public-read",
+    )
+
+    # Existing buckets panel with duplicate highlight
+    existing = st.session_state.get("buckets", [])
+    if existing:
+        with st.expander(f"Existing Buckets ({len(existing)})", expanded=True):
+            for b in existing:
+                if bucket_name and b == bucket_name:
+                    st.markdown(
+                        f"<span style='color:red; font-weight:bold'>⚠ {b} — name already taken</span>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(f"• {b}")
+
+    # Warn before the button if name is taken
+    name_taken = bucket_name in existing if bucket_name else False
+
+    # Color the input box red (taken) or green (available)
+    if bucket_name:
+        border_color = "#cc0000" if name_taken else "#00aa44"
+        st.markdown(
+            f"""
+            <style>
+            [data-testid="stTextInput"]:has(input[placeholder="my-unique-bucket-name"]) input {{
+                border-color: {border_color} !important;
+                box-shadow: 0 0 0 2px {border_color}55 !important;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    if name_taken:
+        st.error(f"'{bucket_name}' already exists. Choose a different name.")
+
+    if st.button("Create Bucket", type="primary", disabled=name_taken):
+        if not bucket_name:
+            st.error("Bucket name is required")
+        else:
+            with st.spinner("Creating bucket..."):
+                try:
+                    resp = requests.post(
+                        f"{API}/create-bucket",
+                        data={
+                            "bucket_name": bucket_name,
+                            "region": region,
+                            "allow_public": str(allow_public).lower(),
+                        },
+                    )
+                    if resp.ok:
+                        st.success(resp.json()["message"])
+                        if allow_public:
+                            st.info("Public access enabled — objects can be set to public-read.")
+                        load_buckets()   # refresh list after creation
+                        st.rerun()
+                    else:
+                        st.error(parse_error(resp))
+                except requests.ConnectionError:
+                    st.error("Cannot reach backend — make sure `uvicorn backend:app --reload` is running")
+                except Exception as e:
+                    st.error(str(e))
