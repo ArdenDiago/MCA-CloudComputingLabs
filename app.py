@@ -151,3 +151,128 @@ with tab1:
                     st.error("Cannot reach backend — make sure `uvicorn backend:app --reload` is running")
                 except Exception as e:
                     st.error(str(e))
+
+# ── Tab 2: Bucket Files ───────────────────────────────────────────────────────
+with tab2:
+    st.header("Bucket Files")
+
+    buckets = st.session_state.get("buckets", [])
+
+    if not buckets:
+        st.warning("No buckets found — create one first or click **Refresh Buckets** at the top.")
+    else:
+        bf_bucket = st.selectbox("Select Bucket", buckets, key="bf_bucket_select")
+
+        # Clear file list whenever the selected bucket changes
+        if st.session_state.get("bf_bucket_loaded") != bf_bucket:
+            st.session_state.pop("bf_files", None)
+            st.session_state.pop("bf_bucket_loaded", None)
+
+        col_load, _ = st.columns([1, 5])
+        with col_load:
+            if st.button("Load Files", use_container_width=True):
+                with st.spinner("Loading files..."):
+                    try:
+                        resp = requests.get(f"{API}/list-objects/{bf_bucket}", timeout=10)
+                        if resp.ok:
+                            st.session_state["bf_files"] = resp.json()["objects"]
+                            st.session_state["bf_bucket_loaded"] = bf_bucket
+                        else:
+                            st.error(parse_error(resp))
+                    except requests.ConnectionError:
+                        st.error("Cannot reach backend — make sure `uvicorn backend:app --reload` is running")
+                    except Exception as e:
+                        st.error(str(e))
+
+        # ── File list ──────────────────────────────────────────────────────────
+        if "bf_files" in st.session_state:
+            files = st.session_state["bf_files"]
+
+            if not files:
+                st.info(f"No files in **{bf_bucket}** — upload some below.")
+            else:
+                st.markdown(f"**{len(files)} file(s) in `{bf_bucket}`**")
+
+                for i, fname in enumerate(files):
+                    with st.expander(fname):
+                        btn_view, btn_del = st.columns(2)
+
+                        with btn_view:
+                            if st.button("View / Get URL", key=f"bf_view_{i}", use_container_width=True):
+                                try:
+                                    resp = requests.get(
+                                        f"{API}/get-object-url/{bf_bucket}/{fname}", timeout=10
+                                    )
+                                    if resp.ok:
+                                        url = resp.json()["url"]
+                                        st.markdown(f"[Open file]({url})")
+                                        st.code(url, language=None)
+                                    else:
+                                        st.error(parse_error(resp))
+                                except requests.ConnectionError:
+                                    st.error("Cannot reach backend")
+                                except Exception as e:
+                                    st.error(str(e))
+
+                        with btn_del:
+                            if st.button("Delete", key=f"bf_del_{i}", type="primary", use_container_width=True):
+                                try:
+                                    resp = requests.delete(
+                                        f"{API}/delete-object/{bf_bucket}/{fname}", timeout=10
+                                    )
+                                    if resp.ok:
+                                        st.success(f"'{fname}' deleted.")
+                                        st.session_state["bf_files"].remove(fname)
+                                        st.rerun()
+                                    else:
+                                        st.error(parse_error(resp))
+                                except requests.ConnectionError:
+                                    st.error("Cannot reach backend")
+                                except Exception as e:
+                                    st.error(str(e))
+
+        # ── Add new files ──────────────────────────────────────────────────────
+        st.divider()
+        with st.expander("+ Add New Files"):
+            upload_acl = st.selectbox(
+                "Access Level",
+                list(ACL_OPTIONS.keys()),
+                format_func=lambda k: ACL_OPTIONS[k],
+                key="bf_upload_acl",
+            )
+            uploaded_files = st.file_uploader("Choose files", accept_multiple_files=True, key="bf_uploader")
+
+            if st.button("Upload", type="primary", key="bf_upload_btn"):
+                if not uploaded_files:
+                    st.error("Select at least one file to upload")
+                else:
+                    with st.spinner(f"Uploading {len(uploaded_files)} file(s) to {bf_bucket}..."):
+                        try:
+                            files_payload = [
+                                ("files", (f.name, f.getvalue(), f.type or "application/octet-stream"))
+                                for f in uploaded_files
+                            ]
+                            resp = requests.post(
+                                f"{API}/upload",
+                                files=files_payload,
+                                data={"bucket_name": bf_bucket, "acl": upload_acl},
+                            )
+                            if resp.ok:
+                                for result in resp.json()["results"]:
+                                    if result["success"]:
+                                        st.success(f"{result['filename']} uploaded")
+                                        st.code(result["url"], language=None)
+                                    else:
+                                        st.error(f"{result['filename']}: {result['error']}")
+                                # Reload file list to reflect newly uploaded files
+                                refresh = requests.get(f"{API}/list-objects/{bf_bucket}", timeout=10)
+                                if refresh.ok:
+                                    st.session_state["bf_files"] = refresh.json()["objects"]
+                                    st.session_state["bf_bucket_loaded"] = bf_bucket
+                                st.rerun()
+                            else:
+                                st.error(parse_error(resp))
+                        except requests.ConnectionError:
+                            st.error("Cannot reach backend — make sure `uvicorn backend:app --reload` is running")
+                        except Exception as e:
+                            st.error(str(e))
