@@ -1,0 +1,7 @@
+streamlit
+boto3
+fastapi
+uvicorn[standard]
+python-multipart
+requests
+python-dotenv
