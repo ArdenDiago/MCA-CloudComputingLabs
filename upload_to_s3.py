@@ -90,3 +90,61 @@ def delete_object(bucket_name, object_key):
     except Exception as e:
         logging.error(e)
         return False, str(e)
+
+
+def get_presigned_url(bucket_name, object_key, expiry=3600):
+    try:
+        s3 = get_client()
+        url = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket_name, "Key": object_key},
+            ExpiresIn=expiry,
+        )
+        return url, None
+    except Exception as e:
+        logging.error(e)
+        return None, str(e)
+
+
+def change_object_acl(bucket_name, object_key, acl):
+    try:
+        s3 = get_client()
+        s3.put_object_acl(Bucket=bucket_name, Key=object_key, ACL=acl)
+        return True, None
+    except Exception as e:
+        logging.error(e)
+        return False, str(e)
+
+
+def delete_bucket(bucket_name):
+    try:
+        s3 = get_client()
+
+        # Empty the bucket first (S3 requires buckets to be empty before deletion)
+        paginator = s3.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket_name):
+            objects = page.get("Contents", [])
+            if objects:
+                s3.delete_objects(
+                    Bucket=bucket_name,
+                    Delete={"Objects": [{"Key": o["Key"]} for o in objects]},
+                )
+
+        # Also remove any versioned objects / delete markers
+        try:
+            ver_paginator = s3.get_paginator("list_object_versions")
+            for page in ver_paginator.paginate(Bucket=bucket_name):
+                versions = page.get("Versions", []) + page.get("DeleteMarkers", [])
+                if versions:
+                    s3.delete_objects(
+                        Bucket=bucket_name,
+                        Delete={"Objects": [{"Key": v["Key"], "VersionId": v["VersionId"]} for v in versions]},
+                    )
+        except Exception:
+            pass  # versioning not enabled — safe to ignore
+
+        s3.delete_bucket(Bucket=bucket_name)
+        return True, None
+    except Exception as e:
+        logging.error(e)
+        return False, str(e)
