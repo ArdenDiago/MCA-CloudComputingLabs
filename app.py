@@ -276,3 +276,73 @@ with tab2:
                             st.error("Cannot reach backend — make sure `uvicorn backend:app --reload` is running")
                         except Exception as e:
                             st.error(str(e))
+
+# ── Tab 3: Change Access Level ────────────────────────────────────────────────
+with tab3:
+    st.header("Change Object Access Level")
+
+    buckets = st.session_state.get("buckets", [])
+
+    if buckets:
+        acl_bucket = st.selectbox("Select Bucket", buckets, key="acl_bucket_select")
+    else:
+        acl_bucket = st.text_input(
+            "Bucket Name",
+            key="acl_bucket_text",
+            placeholder="No buckets found — enter name manually",
+        )
+        st.caption("Click **Refresh Buckets** at the top to load your buckets.")
+
+    if st.button("Load Objects"):
+        if not acl_bucket:
+            st.error("Select or enter a bucket name first")
+        else:
+            with st.spinner("Loading objects..."):
+                try:
+                    resp = requests.get(f"{API}/list-objects/{acl_bucket}")
+                    if resp.ok:
+                        st.session_state["objects"] = resp.json()["objects"]
+                        st.session_state["acl_bucket_loaded"] = acl_bucket
+                        if not st.session_state["objects"]:
+                            st.info("No objects found in this bucket")
+                    else:
+                        st.error(parse_error(resp))
+                except requests.ConnectionError:
+                    st.error("Cannot reach backend — make sure `uvicorn backend:app --reload` is running")
+                except Exception as e:
+                    st.error(str(e))
+
+    # Clear objects list if user switches to a different bucket
+    if st.session_state.get("acl_bucket_loaded") != acl_bucket:
+        st.session_state.pop("objects", None)
+
+    if st.session_state.get("objects"):
+        st.divider()
+        object_key = st.selectbox("Select Object", st.session_state["objects"])
+        new_acl = st.selectbox(
+            "New Access Level",
+            list(ACL_OPTIONS.keys()),
+            format_func=lambda k: ACL_OPTIONS[k],
+            key="new_acl",
+        )
+
+        if st.button("Apply Access Level", type="primary"):
+            with st.spinner("Updating access level..."):
+                try:
+                    resp = requests.post(
+                        f"{API}/change-acl",
+                        data={
+                            "bucket_name": acl_bucket,
+                            "object_key": object_key,
+                            "acl": new_acl,
+                        },
+                    )
+                    if resp.ok:
+                        st.success(resp.json()["message"])
+                        st.info(f"Object: `{object_key}` — New access: **{ACL_OPTIONS[new_acl]}**")
+                    else:
+                        st.error(parse_error(resp))
+                except requests.ConnectionError:
+                    st.error("Cannot reach backend — make sure `uvicorn backend:app --reload` is running")
+                except Exception as e:
+                    st.error(str(e))
