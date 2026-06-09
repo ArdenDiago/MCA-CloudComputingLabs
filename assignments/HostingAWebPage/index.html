@@ -1,0 +1,95 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome</title>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family: "Poppins", sans-serif;
+    }
+
+    body{
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      overflow:hidden;
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #2563eb, #06b6d4);
+      background-size: 400% 400%;
+      animation: gradientMove 12s ease infinite;
+      color:white;
+    }
+
+    @keyframes gradientMove{
+      0%{ background-position:0% 50%; }
+      50%{ background-position:100% 50%; }
+      100%{ background-position:0% 50%; }
+    }
+
+    .container{
+      text-align:center;
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.08);
+      padding:50px 70px;
+      border-radius:25px;
+      border:1px solid rgba(255,255,255,0.15);
+      box-shadow:0 10px 40px rgba(0,0,0,0.4);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float{
+      0%,100%{
+        transform:translateY(0px);
+      }
+      50%{
+        transform:translateY(-10px);
+      }
+    }
+
+    h1{
+      font-size:4rem;
+      margin-bottom:15px;
+      letter-spacing:2px;
+    }
+
+    p{
+      font-size:1.2rem;
+      opacity:0.85;
+    }
+
+    .btn{
+      margin-top:30px;
+      display:inline-block;
+      padding:14px 30px;
+      border-radius:50px;
+      text-decoration:none;
+      color:white;
+      background: linear-gradient(90deg,#3b82f6,#06b6d4);
+      transition:0.3s ease;
+      font-weight:600;
+      box-shadow:0 5px 20px rgba(0,0,0,0.3);
+    }
+
+    .btn:hover{
+      transform:scale(1.05);
+      box-shadow:0 8px 30px rgba(6,182,212,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Welcome</h1>
+    <p>Your modern web experience starts here.</p>
+
+    <a href="#" class="btn">Explore</a>
+  </div>
+
+</body>
+</html>
