@@ -1,0 +1,251 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AWS S3 Image Gallery</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            min-height: 100vh;
+            color: white;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 3rem;
+            letter-spacing: 2px;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease,
+                        box-shadow 0.3s ease;
+            position: relative;
+            min-height: 320px;
+        }
+
+        .card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        .image-container {
+            width: 100%;
+            height: 320px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .loader {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.2);
+            border-top: 5px solid #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error {
+            position: absolute;
+            inset: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+            background: rgba(220, 38, 38, 0.15);
+            color: #fecaca;
+        }
+
+        .error h2 {
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+
+        .error p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .filename {
+            padding: 15px;
+            text-align: center;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.05);
+        }
+
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        @media(max-width: 600px) {
+            body {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Interactive AWS S3 Gallery</h1>
+
+    <div class="gallery">
+
+        <!-- Card 1 -->
+        <div class="card">
+            <div class="image-container">
+                <div class="loader">
+                    <div class="spinner"></div>
+                </div>
+
+                <img src="1.jpeg" alt="Image 1">
+
+                <div class="error">
+                    <h2>⚠ Access Denied</h2>
+                    <p>Unable to load 1.jpeg</p>
+                    <p>Check S3 permissions or object availability.</p>
+                </div>
+            </div>
+
+            <div class="filename">1.jpeg</div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="card">
+            <div class="image-container">
+                <div class="loader">
+                    <div class="spinner"></div>
+                </div>
+
+                <img src="2.png" alt="Image 2">
+
+                <div class="error">
+                    <h2>⚠ Access Denied</h2>
+                    <p>Unable to load 2.png</p>
+                    <p>Check S3 permissions or object availability.</p>
+                </div>
+            </div>
+
+            <div class="filename">2.png</div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="card">
+            <div class="image-container">
+                <div class="loader">
+                    <div class="spinner"></div>
+                </div>
+
+                <img src="3.png" alt="Image 3">
+
+                <div class="error">
+                    <h2>⚠ Access Denied</h2>
+                    <p>Unable to load 3.png</p>
+                    <p>Check S3 permissions or object availability.</p>
+                </div>
+            </div>
+
+            <div class="filename">3.png</div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="card">
+            <div class="image-container">
+                <div class="loader">
+                    <div class="spinner"></div>
+                </div>
+
+                <img src="4.jpeg" alt="Image 4">
+
+                <div class="error">
+                    <h2>⚠ Access Denied</h2>
+                    <p>Unable to load 4.jpeg</p>
+                    <p>Check S3 permissions or object availability.</p>
+                </div>
+            </div>
+
+            <div class="filename">4.jpeg</div>
+        </div>
+
+    </div>
+
+    <footer>
+        Hosted using AWS S3 Static Website Hosting
+    </footer>
+
+    <script>
+        const cards = document.querySelectorAll('.card');
+
+        cards.forEach(card => {
+            const img = card.querySelector('img');
+            const loader = card.querySelector('.loader');
+            const error = card.querySelector('.error');
+
+            img.onload = () => {
+                loader.style.display = 'none';
+                img.style.display = 'block';
+            };
+
+            img.onerror = () => {
+                loader.style.display = 'none';
+                error.style.display = 'flex';
+            };
+        });
+    </script>
+
+</body>
+</html>
+```

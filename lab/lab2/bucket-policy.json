@@ -1,0 +1,43 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+
+    {
+      "Sid": "PublicIndex",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::ardendiago2547112lab2/index.html"
+    },
+
+    {
+      "Sid": "PublicImage1",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::ardendiago2547112lab2/1.jpeg"
+    },
+
+    {
+      "Sid": "DenyImage2",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::ardendiago2547112lab2/2.png"
+    },
+
+    {
+      "Sid": "AllowSpecificIPForImage3",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::ardendiago2547112lab2/3.png",
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": "106.216.234.121/22"
+        }
+      }
+    }
+
+  ]
+}
