@@ -71,6 +71,16 @@ tab1, tab2, tab3, tab4 = st.tabs(["Create Bucket", "Bucket Files", "Change Acces
 with tab1:
     st.header("Create S3 Bucket")
 
+    # Show result from previous create attempt (set before st.rerun())
+    if "create_bucket_result" in st.session_state:
+        result = st.session_state.pop("create_bucket_result")
+        if result["ok"]:
+            st.success(result["message"])
+            if result.get("public"):
+                st.info("Public access enabled — objects can be set to public-read.")
+        else:
+            st.error(result["message"])
+
     col1, col2 = st.columns(2)
     with col1:
         bucket_name = st.text_input(
@@ -140,10 +150,12 @@ with tab1:
                         },
                     )
                     if resp.ok:
-                        st.success(resp.json()["message"])
-                        if allow_public:
-                            st.info("Public access enabled — objects can be set to public-read.")
-                        load_buckets()   # refresh list after creation
+                        st.session_state["create_bucket_result"] = {
+                            "ok": True,
+                            "message": resp.json()["message"],
+                            "public": allow_public,
+                        }
+                        load_buckets()
                         st.rerun()
                     else:
                         st.error(parse_error(resp))
